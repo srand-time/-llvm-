@@ -1,0 +1,4 @@
+# Hashes of file build rules.
+18966cbb4ac41684599080a0e74b45b4 lab1_lexical_analyzer/lex.yy.c
+be317565a4e37a8d6e4fbf68044ec980 lab1_lexical_analyzer/syntax_analyzer.c
+3183992925098815948b72dacdd6b229 lab2_syntax_analyzer/syntax_analyzer.c
