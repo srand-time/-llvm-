@@ -1,0 +1,143 @@
+实验要求：
+Lab 01 ---- SQL 
+设某图书馆数据库包含下面的基本表： 
+⚫ Book（ID: char(8)，name:varchar(10)，author:varchar(10)，price:float， status: int） 图
+书号 ID 为主键，书名不能为空。状态（status）为 1 表示书被借出，0 表示在馆，默
+认值为 0。 
+⚫ Reader（ID:char(8)，name:varchar(10)，age:int，address:varchar(20)） 读者号 ID 为
+主键。 
+⚫ Borrow（book_ID:char(8)，Reader_ID:char(8)，Borrow_Date:date，Return_Date:date） 
+其中：还期 Return_Date 为 NULL 表示该书未还。主键为（图书号，读者号），图
+书号为外键，引用图书表的图书号，读者号为外键，引用读者表的读者号 
+1、 创建上述基本表，并插入部分测试数据； 
+2、 设计例子，验证实体完整性、参照完整性、用户自定义完整性； 
+3、 用 SQL 语言完成下面小题，并测试运行结果： 
+（1） 检索读者 Rose 的读者号和地址； 
+（2） 检索读者 Rose 所借阅读书（包括已还和未还图书）的图书名和借期； 
+（3） 检索未借阅图书的读者姓名；  
+（4） 检索 Ullman 所写的书的书名和单价；  
+（5） 检索读者“李林”借阅未还的图书的图书号和书名；  
+（6） 检索借阅图书数目超过 3 本的读者姓名；  
+（7） 检索没有借阅读者“李林”所借的任何一本书的读者姓名和读者号；  
+（8） 检索书名中包含“Oracle”的图书书名及图书号；  
+（9） 创建一个读者借书信息的视图，该视图包含读者号、姓名、所借图书号、图书名
+和借期；并使用该视图查询最近一年所有读者的读者号以及所借阅的不同图书数；
+ 
+4、 设计存储过程，实现对 Book 表的 ID 的修改。 
+5、 设计触发器，实现：当一本书被借出时，自动将 Book 表中相应图书的 status 修改为1；当某本书被归还时，自动将 status 改为 0。
+
+
+
+1)
+mysql -hlocalhost -uroot -p456321
+create database lab01;
+
+2)use lab01;
+
+3)	
+	CREATE TABLE BOOK(
+  	id CHAR(8)  NOT NULL,
+  	name VARCHAR(10) NOT NULL,
+  	author VARCHAR(10) NOT NULL,
+	price FLOAT NOT NULL,
+  	status INT NOT NULL,
+  	PRIMARY KEY(id)
+	) Engine=INNODB DEFAULT CHARSET=UTF8;
+
+
+	CREATE TABLE READER(
+  	id CHAR(8)  NOT NULL,
+  	name VARCHAR(10) NOT NULL,
+  	age INT NOT NULL,
+	address VARCHAR(20),
+  	PRIMARY KEY(id)
+	) Engine=INNODB DEFAULT CHARSET=UTF8;
+
+
+	CREATE TABLE BORROW(
+	book_id CHAR(8) NOT NULL,
+	reader_id CHAR(8) NOT NULL,
+	borrow_date date NOT NULL,
+	return_date date,
+	PRIMARY KEY(book_id,reader_id)
+	)Engine=INNODB DEFAULT CHARSET=UTF8;
+
+	alter table borrow ADD CONSTRAINT fk_emp_dept1
+	FOREIGN KEY(book_id) REFERENCES book(id);
+
+	alter table borrow ADD CONSTRAINT fk_emp_dept2
+	FOREIGN KEY(reader_id) REFERENCES reader(id);
+
+4)
+	INSERT INTO BOOK(id,name,author,price,status) VALUES('CB114','DIV','Ullman',20.22,1),('CB113','SUB','Ullman',13.15,1),('AD002','LOOP','RUA',17.32,1),
+	('AD004','JMP','RUA',16.31,1),('AD003','BEQ','RUA',18.35,1),('GC007','DAW','CCCP',8.37,1),('GC1917','LN','CCCP',9.57,1),('GC1990','GDT','CCCP',8.58,1);
+
+	INSERT INTO READER(id,name,age,address) VALUES ('CP001','SDL',103,'SOV'),('CH001','CHM',25,'CHN'),('PB003','ROSE',18,'UST'),('PB010','LINI',20,'UST');
+
+	INSERT INTO BORROW(book_id,reader_id,borrow_date,return_date) VALUES('CB114','PB003','2012-12-1',NULL),('CB113','PB003','2012-12-25','2013-5-6'),			('AD002','PB003','2018-11-2','2019-12-3'),('GC007','PB010','2017-1-1',NULL),('GC1990','PB010','2017-1-1',NULL);
+	INSERT INTO BORROW(book_id,reader_id,borrow_date,return_date) VALUES('AD004','PB010','2016-5-6','2017-1-1');
+
+	UPDATE BORROW set return_date=null where book_id='GC1990';
+
+5)	触发器：：：
+---------------------------------------------->>>>>>>>>>>>>>>>>>>>>>>>>>>>
+CREATE TRIGGER trigger_name trigger_time trigger_event ON tb_name FOR EACH ROW trigger_stmt
+trigger_name：触发器的名称
+tirgger_time：触发时机，为BEFORE或者AFTER
+trigger_event：触发事件，为INSERT、DELETE或者UPDATE
+tb_name：表示建立触发器的表明，就是在哪张表上建立触发器
+trigger_stmt：触发器的程序体，可以是一条SQL语句或者是用BEGIN和END包含的多条语句
+所以可以说MySQL创建以下六种触发器：
+BEFORE INSERT,BEFORE DELETE,BEFORE UPDATE
+AFTER INSERT,AFTER DELETE,AFTER UPDATE
+
+	delimiter $$
+	create trigger borrowbook1 after insert on borrow for each row
+	begin
+    		update book set status=1 where id = new.book_id and new.return_date is null;
+		update book set status=0 where id = new.book_id and new.return_date is not null;
+	end
+	$$
+	delimiter ;
+
+
+	delimiter $$
+	create trigger borrowbook2 after update on borrow for each row
+	begin
+    		update book set status=1 where id = new.book_id and new.return_date is null;
+		update book set status=0 where id = new.book_id and new.return_date is not null;
+	end
+	$$
+	delimiter ;
+6）
+	先创建一个通用视图：create view l1v1 as select 
+			borrow.book_id,borrow.reader_id,borrow.borrow_date,borrow.return_date,reader.name as rname,
+			reader.age as rage,reader.address as rad,book.name as bname,book.author as bauthor,book.price as bprice ,book.status as bs
+			from book,reader,borrow where book.id=borrow.book_id and reader.id=borrow.reader_id;
+	查询1.	select id,address from reader where name='ROSE'; 
+	查询2.	select bname,borrow_date from l1v1 where rname='ROSE';
+	查询3.	select * from reader left join borrow on reader.id=borrow.reader_id;	左连接
+		select name from reader left join borrow on reader.id=borrow.reader_id where book_id is NULL;
+	查询4.	select name,price from book where author='Ullman';
+	查询5.	select book_id,bname from l1v1 where rname='LINI';
+	查询6.	select rname from l1v1 group by rname having count(rname)>=3;
+	查询7.	select rname,reader_id from l1v1 where rname!='LINI';
+	查询8.	select name,id from book where name like '%D%';
+	查询9.	create view l1v2 as select reader_id,rname,book_id,bname,borrow_date from l1v1;
+		含读者号、姓名、所借图书号、图书名和借期；
+		select distinct rname,reader_id,count(book_id) as num_of_borrow_book from l1v2 group by rname;
+
+7)	示例：update book set id='xxx' where id='xxx';	//有坑，不能只更新book表，要同步更新borrow表。
+		
+	SET FOREIGN_KEY_CHECKS = 0;	//暂时停掉外键约束
+	update book left join borrow on book.id=borrow.book_id set book.id='CB1190',borrow.book_id='CB1190' where book.id='CB114';
+
+
+
+8)	测试用语句：
+	select * from borrow where return_date is null;
+
+
+mysql -hlocalhost -uroot -p456321
+
+use lab01;
